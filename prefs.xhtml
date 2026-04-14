@@ -1,0 +1,36 @@
+<groupbox xmlns:html="http://www.w3.org/1999/xhtml" onload="(function(){
+  var PREFIX = 'extensions.paper-partner.';
+  var DEFAULTS = {
+    apiKey: '',
+    apiEndpoint: 'https://api.deepseek.com/v1/chat/completions',
+    model: 'deepseek-chat'
+  };
+  Object.keys(DEFAULTS).forEach(function(key) {
+    var el = document.getElementById('pp-' + key);
+    if (!el) return;
+    try {
+      var v = Zotero.Prefs.get(PREFIX + key, true);
+      el.value = (v !== undefined &amp;&amp; v !== null) ? v : DEFAULTS[key];
+    } catch(e) { el.value = DEFAULTS[key]; }
+    el.addEventListener('input', function() {
+      Zotero.Prefs.set(PREFIX + key, el.value, true);
+    });
+  });
+})()">
+  <label><html:h2>Paper Partner</html:h2></label>
+
+  <hbox align="center" style="margin-top: 8px">
+    <label value="API Key" style="min-width: 110px"/>
+    <html:input type="password" id="pp-apiKey" flex="1" style="margin-left: 4px"/>
+  </hbox>
+
+  <hbox align="center" style="margin-top: 6px">
+    <label value="API Endpoint" style="min-width: 110px"/>
+    <html:input type="text" id="pp-apiEndpoint" flex="1" style="margin-left: 4px"/>
+  </hbox>
+
+  <hbox align="center" style="margin-top: 6px">
+    <label value="Model" style="min-width: 110px"/>
+    <html:input type="text" id="pp-model" flex="1" style="margin-left: 4px"/>
+  </hbox>
+</groupbox>

@@ -1,0 +1,15 @@
+{
+    "manifest_version": 2,
+    "name": "Zotero Paper Partner",
+    "version": "0.1.0",
+    "description": "Async Q&A for Zotero notes — quietly answers your reading questions in the background.",
+    "author": "Sihan Qin",
+    "applications": {
+        "zotero": {
+            "id": "zotero-paper-partner",
+            "update_url": "https://example.com/paper-partner-updates.json",
+            "strict_min_version": "7.0",
+            "strict_max_version": "9.*"
+        }
+    }
+}
