@@ -1,4 +1,10 @@
+<p align="center">
+  <img src="./assets/image.png" alt="Zotero Paper Partner icon" width="120">
+</p>
+
 # Zotero Paper Partner
+
+A Zotero plugin that answers `Q:` questions you write inside notes — silently, in the background, without breaking your reading flow.
 
 ![Zotero](https://img.shields.io/badge/Zotero-9-E05A47?logo=zotero&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=000)
@@ -6,9 +12,9 @@
 ![Open Prompt](https://img.shields.io/badge/Open%20Prompt-public-2C7A7B)
 ![Vibe Coding](https://img.shields.io/badge/Vibe%20Coding-Agent%20Reproducible-111111)
 
-A Zotero plugin that answers `Q:` questions you write inside notes — silently, in the background, without breaking your reading flow.
-
 [中文说明](./README.zh-CN.md)
+
+[![Demo](./assets/demo.gif)](./assets/demo.mp4)
 
 ---
 
@@ -27,12 +33,6 @@ but works across different ways of encoding the same underlying information.
 ```
 
 That's really the whole idea: keep the question, the context, and the answer in one place, and don't make reading feel heavier than it already is.
-
-## Demo
-
-[demo.mp4](./demo.mp4)
-
----
 
 ## Why it feels different
 

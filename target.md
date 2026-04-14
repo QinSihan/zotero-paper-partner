@@ -286,7 +286,16 @@ MVP 只需要把最基本闭环做稳：
 manifest.json     ← 插件元数据
 bootstrap.js      ← 全部插件逻辑（解析、队列、API 调用、写回）
 prefs.xhtml       ← 设置面板（API Key / Endpoint / Model）
-paper-partner.xpi ← 打包好的安装包，直接拖入 Zotero 即可
+updates.json      ← 自动更新元数据，供 GitHub Pages 提供给 Zotero
+icon.png          ← 48x48 插件图标，供 Zotero 显示
+icon@2x.png       ← 96x96 插件图标，供 Zotero 显示
+README.md         ← 英文项目说明
+README.zh-CN.md   ← 中文项目说明
+assets/           ← 仓库展示素材目录
+  image.png       ← 插件图标源文件
+  demo.mp4        ← 演示视频
+  demo.gif        ← README 内联演示预览图
+paper-partner.xpi ← 打包好的安装包；建议放在 GitHub Releases，而不是源码仓库目录
 ```
 
 **快速开始**：
@@ -296,7 +305,7 @@ paper-partner.xpi ← 打包好的安装包，直接拖入 Zotero 即可
 
 如需修改后重新打包：
 ```bash
-zip -j paper-partner.xpi manifest.json bootstrap.js prefs.xhtml
+zip -j paper-partner.xpi manifest.json bootstrap.js prefs.xhtml icon.png icon@2x.png
 ```
 
 ---
@@ -310,11 +319,14 @@ my-plugin/
   manifest.json     ← 插件元数据（必须）
   bootstrap.js      ← 插件逻辑入口（必须）
   prefs.xhtml       ← 设置面板（可选，JS 内联在 onload 里，不需要单独 .js 文件）
+  updates.json      ← 自动更新元数据（如需自动更新，强烈建议提供）
+  icon.png          ← 48x48 插件图标（推荐）
+  icon@2x.png       ← 96x96 插件图标（推荐）
 ```
 
 打包：
 ```bash
-zip -j my-plugin.xpi manifest.json bootstrap.js prefs.xhtml
+zip -j my-plugin.xpi manifest.json bootstrap.js prefs.xhtml icon.png icon@2x.png
 ```
 
 ---
