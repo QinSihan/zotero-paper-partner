@@ -28,6 +28,7 @@ function getPref(key) {
 }
 
 let rootURI = "";
+const PLUGIN_ID = "paper-partner@qinsihan.github.io";
 
 // ============================================================
 // NOTE PARSER
@@ -384,7 +385,7 @@ function startup(data, reason) {
         // All prefs logic is inline in the onload of prefs.xhtml — no scripts array needed.
         try {
             Zotero.PreferencePanes.register({
-                pluginID: "paper-partner@local.dev",
+                pluginID: PLUGIN_ID,
                 src:      rootURI + "prefs.xhtml",
                 label:    "Paper Partner",
             });
@@ -400,7 +401,7 @@ function startup(data, reason) {
 
 function shutdown(data, reason) {
     Zotero.debug("[PaperPartner] shutdown");
-    try { Zotero.PreferencePanes.unregister("paper-partner@local.dev"); } catch (_) {}
+    try { Zotero.PreferencePanes.unregister(PLUGIN_ID); } catch (_) {}
     unregisterObserver();
     TaskQueue.clear();
 }
