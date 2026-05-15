@@ -2,12 +2,17 @@
 
 // ============================================================
 // CONFIGURATION
-// Behavioral constants — not exposed to users.
-// API settings (key / endpoint / model) live in Zotero Preferences.
+// Behavioral constants.
+// User-facing settings live in Zotero Preferences.
 // ============================================================
 const CONFIG = {
-    debounceMs: 3000,       // Wait this long after last note edit before processing
     maxContextLength: 2000, // Max chars of context sent to the model
+    triggerDelays: {
+        immediate: 0,
+        short: 1000,
+        medium: 2000,
+        long: 3000,
+    },
 };
 
 const PREF_PREFIX = "extensions.paper-partner.";
@@ -15,6 +20,8 @@ const PREF_DEFAULTS = {
     apiKey:      "",
     apiEndpoint: "https://api.deepseek.com/v1/chat/completions",
     model:       "deepseek-chat",
+    answerMode:  "brief",
+    triggerDelay: "medium",
 };
 
 /** Read a user-configurable preference, falling back to PREF_DEFAULTS. */
@@ -24,6 +31,23 @@ function getPref(key) {
         return (val !== undefined && val !== null && val !== "") ? val : PREF_DEFAULTS[key];
     } catch (_) {
         return PREF_DEFAULTS[key];
+    }
+}
+
+function getAnswerMode() {
+    return getPref("answerMode") === "detailed" ? "detailed" : "brief";
+}
+
+function getTriggerDelayMs() {
+    const delay = getPref("triggerDelay");
+    return CONFIG.triggerDelays[delay] || CONFIG.triggerDelays.medium;
+}
+
+function getEndpointHost(endpoint) {
+    try {
+        return new URL(endpoint).host;
+    } catch (_) {
+        return "invalid-endpoint";
     }
 }
 
@@ -118,6 +142,16 @@ const NoteParser = {
 // Always re-fetches the note from Zotero before writing to pick up concurrent edits.
 // ============================================================
 const NoteWriter = {
+    _setParagraphText(el, text) {
+        el.textContent = "";
+
+        const lines = String(text).split("\n");
+        lines.forEach((line, index) => {
+            if (index > 0) el.appendChild(el.ownerDocument.createElement("br"));
+            el.appendChild(el.ownerDocument.createTextNode(line));
+        });
+    },
+
     /**
      * Find the Q paragraph by its full text content, then insert or replace
      * the immediately following A[...] paragraph.
@@ -149,10 +183,10 @@ const NoteWriter = {
         // Otherwise insert a new paragraph after the Q.
         const next = qEl.nextElementSibling;
         if (next && next.tagName === "P" && /^A\[\w+\]:/.test(next.textContent.trim())) {
-            next.textContent = answerLine;
+            this._setParagraphText(next, answerLine);
         } else {
             const aEl = doc.createElement("p");
-            aEl.textContent = answerLine;
+            this._setParagraphText(aEl, answerLine);
             qEl.insertAdjacentElement("afterend", aEl);
         }
 
@@ -167,43 +201,168 @@ const NoteWriter = {
 // OpenAI-compatible chat completion. DeepSeek by default.
 // ============================================================
 const ApiClient = {
-    async query(questionText, contextText) {
-        const systemPrompt =
-            "You are a quiet reading assistant for academic papers. " +
-            "Answer the user's question in 1–3 short sentences. " +
-            "Focus only on clarifying the specific term or claim the user asked about, " +
-            "using the provided local context. " +
-            "Do not explain background theory at length, do not list related work, " +
-            "do not summarize the paper. Be direct and locally focused.";
+    _modes: {
+        brief: {
+            maxTokens: 300,
+            systemPrompt:
+                "You are a quiet reading assistant embedded in a Zotero note. " +
+                "Give a compact answer that can be inserted directly below the user's question. " +
+                "Explain only the exact term, sentence, or local claim being asked about. " +
+                "Use the provided local note excerpt when it helps. " +
+                "Do not add broad background, related work, long summaries, bullet lists, or follow-up suggestions.",
+            userInstruction:
+                "Answer in 1-3 short sentences. Stay local to the question and the provided local note excerpt. " +
+                "The local note excerpt may be truncated to 2000 characters. Keep your answer within 300 output tokens.",
+        },
+        detailed: {
+            maxTokens: 1500,
+            systemPrompt:
+                "You are a careful academic reading assistant embedded in a Zotero note. " +
+                "Help the reader genuinely understand the specific point they asked about. " +
+                "You may explain the relevant concept, mechanism, causal relationship, and assumptions, using the same local note excerpt provided for this question. " +
+                "Format detailed answers with visible paragraph breaks so they remain easy to scan inside a note. " +
+                "Do not drift into a full paper summary, broad literature review, or unrelated background.",
+            userInstruction:
+                "Answer in 2-4 short paragraphs separated by a blank line. " +
+                "Use a brief list only if it makes the explanation clearer, and keep list items short. " +
+                "Explain the idea more fully while staying anchored to this question and the provided local note excerpt. " +
+                "The local note excerpt may be truncated to 2000 characters. Keep your answer within 1500 output tokens.",
+        },
+    },
 
+    _buildMessages(questionText, contextText, mode) {
+        const config = this._modes[mode] || this._modes.brief;
         const userMessage = contextText
             ? `Context from my reading notes:\n${contextText}\n\nQuestion: ${questionText}`
             : `Question: ${questionText}`;
 
-        const response = await fetch(getPref("apiEndpoint"), {
+        return {
+            maxTokens: config.maxTokens,
+            instruction: config.userInstruction,
+            messages: [
+                { role: "system", content: config.systemPrompt },
+                { role: "user", content: config.userInstruction },
+                { role: "user", content: userMessage },
+            ],
+        };
+    },
+
+    _normalizeContent(content) {
+        if (typeof content === "string") return content.trim();
+        if (Array.isArray(content)) {
+            return content
+                .map(part => {
+                    if (typeof part === "string") return part;
+                    if (part && typeof part.text === "string") return part.text;
+                    if (part && typeof part.content === "string") return part.content;
+                    return "";
+                })
+                .join("")
+                .trim();
+        }
+        return "";
+    },
+
+    _summarizeChoice(choice) {
+        if (!choice) return "choice=missing";
+        const message = choice.message || {};
+        const content = message.content;
+        const contentType = Array.isArray(content) ? "array" : typeof content;
+        return [
+            "finish_reason=" + (choice.finish_reason || "unknown"),
+            "message_keys=" + Object.keys(message).join("|"),
+            "content_type=" + contentType,
+            "content_length=" + (typeof content === "string" ? content.length : 0),
+        ].join(", ");
+    },
+
+    async query(questionText, contextText) {
+        const endpoint = getPref("apiEndpoint");
+        const model = getPref("model");
+        const mode = getAnswerMode();
+        const request = this._buildMessages(questionText, contextText, mode);
+
+        Zotero.debug(
+            "[PaperPartner] API request: host=" + getEndpointHost(endpoint) +
+            ", model=" + model +
+            ", mode=" + mode +
+            ", max_tokens=" + request.maxTokens +
+            ", instruction_length=" + request.instruction.length +
+            ", message_count=" + request.messages.length
+        );
+
+        const response = await fetch(endpoint, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${getPref("apiKey")}`,
             },
             body: JSON.stringify({
-                model: getPref("model"),
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: userMessage },
-                ],
-                max_tokens: 200,
+                model,
+                messages: request.messages,
+                max_tokens: request.maxTokens,
                 temperature: 0.3,
             }),
         });
 
         if (!response.ok) {
             const body = await response.text().catch(() => "");
+            Zotero.debug(
+                "[PaperPartner] API HTTP error: host=" + getEndpointHost(endpoint) +
+                ", model=" + model +
+                ", status=" + response.status +
+                ", body=" + body.slice(0, 500)
+            );
             throw new Error(`HTTP ${response.status}: ${body.slice(0, 200)}`);
         }
 
-        const data = await response.json();
-        return data.choices[0].message.content.trim();
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            Zotero.debug(
+                "[PaperPartner] API JSON parse error: host=" + getEndpointHost(endpoint) +
+                ", model=" + model +
+                ", status=" + response.status +
+                ", error=" + e.message
+            );
+            throw new Error("Invalid JSON from API");
+        }
+
+        const choice = data && data.choices && data.choices[0];
+        const message = choice && choice.message;
+        const content = message ? this._normalizeContent(message.content) : "";
+        const finishReason = choice && choice.finish_reason ? choice.finish_reason : "unknown";
+
+        if (!content) {
+            Zotero.debug(
+                "[PaperPartner] Empty API response: host=" + getEndpointHost(endpoint) +
+                ", model=" + model +
+                ", status=" + response.status +
+                ", " + this._summarizeChoice(choice)
+            );
+            throw new Error("Empty response from API (finish_reason=" + finishReason + ")");
+        }
+
+        if (finishReason === "length") {
+            Zotero.debug(
+                "[PaperPartner] API response was cut off: host=" + getEndpointHost(endpoint) +
+                ", model=" + model +
+                ", status=" + response.status +
+                ", " + this._summarizeChoice(choice)
+            );
+            throw new Error("Response was cut off by the token limit (finish_reason=length)");
+        }
+
+        Zotero.debug(
+            "[PaperPartner] API response OK: host=" + getEndpointHost(endpoint) +
+            ", model=" + model +
+            ", status=" + response.status +
+            ", finish_reason=" + finishReason +
+            ", content_length=" + content.length
+        );
+
+        return content;
     },
 };
 
@@ -222,12 +381,14 @@ const TaskQueue = {
         const existing = this._debounceTimers.get(itemId);
         if (existing) clearTimeout(existing);
 
+        const delayMs = getTriggerDelayMs();
         const timer = setTimeout(() => {
             this._debounceTimers.delete(itemId);
             this._enqueue(itemId);
-        }, CONFIG.debounceMs);
+        }, delayMs);
 
         this._debounceTimers.set(itemId, timer);
+        Zotero.debug("[PaperPartner] Scheduled note " + itemId + " in " + delayMs + "ms.");
     },
 
     _enqueue(itemId) {
