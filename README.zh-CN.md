@@ -9,7 +9,7 @@
 ![Zotero](https://img.shields.io/badge/Zotero-9-E05A47?logo=zotero&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=000)
 ![OpenAI Compatible](https://img.shields.io/badge/API-OpenAI兼容-412991?logo=openai&logoColor=white)
-![GitHub Downloads](https://img.shields.io/github/downloads/QinSihan/zotero-paper-partner/total?label=downloads&logo=github)
+![GitHub Downloads](https://img.shields.io/github/downloads/QinSihan/zotero-paper-partner/total?label=downloads&logo=GitHub)
 ![Open Prompt](https://img.shields.io/badge/Open%20Prompt-public-2C7A7B)
 ![Vibe Coding](https://img.shields.io/badge/Vibe%20Coding-Agent可复现-111111)
 
