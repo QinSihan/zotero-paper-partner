@@ -53,8 +53,6 @@ Download `paper-partner.xpi` from GitHub Releases, then in Zotero: `Tools → Pl
 
 `Zotero Preferences → Paper Partner` — set your API key, endpoint, model, answer mode, and trigger delay. Defaults to DeepSeek's OpenAI-compatible API.
 
-OrcaRouter is optional: select it in settings and enter your own key from the [website](https://www.orcarouter.ai/). It uses a separate key and model, initially `orcarouter/free`. Questions and nearby note excerpts pass through this third-party gateway; avoid sensitive content and check prices. Free availability can change.
-
 ## Q&A
 
 **Which APIs are supported?**  

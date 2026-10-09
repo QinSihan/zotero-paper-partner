@@ -52,8 +52,6 @@ A[done]: 意思是该方法不依赖某种特定的内部表示，而是能在�
 
 `Zotero 偏好设置 → Paper Partner` — 填入 API key、接口地址、模型名称、回答模式和触发延迟。默认使用 DeepSeek 的 OpenAI 兼容 API。
 
-OrcaRouter 是可选项：在设置中选择后，填入你在 [官网](https://www.orcarouter.ai/)创建的 Key。Key 和模型单独保存，默认 `orcarouter/free`。问题和附近笔记片段会经过这个第三方网关，请避免敏感内容并确认价格；免费供应可能变化。
-
 ## Q&A
 
 **支持哪些 API？**  
