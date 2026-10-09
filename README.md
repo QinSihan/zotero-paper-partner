@@ -6,7 +6,7 @@
 
 A Zotero plugin that answers `Q:` questions you write inside notes — silently, in the background, without breaking your reading flow.
 
-![Zotero](https://img.shields.io/badge/Zotero-9-E05A47?logo=zotero&logoColor=white)
+![Zotero](https://img.shields.io/badge/Zotero-10-E05A47?logo=zotero&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=000)
 ![OpenAI Compatible](https://img.shields.io/badge/API-OpenAI--compatible-412991?logo=openai&logoColor=white)
 ![Open Prompt](https://img.shields.io/badge/Open%20Prompt-public-2C7A7B)
@@ -54,7 +54,7 @@ Download `paper-partner.xpi` from GitHub Releases, then in Zotero: `Tools → Pl
 
 ## Requirements
 
-Zotero 7+ (tested on Zotero 9). Any OpenAI-compatible API endpoint works.
+Zotero 7–10 (tested on Zotero 9 and 10.0.6). Any OpenAI-compatible API endpoint works.
 
 ---
 

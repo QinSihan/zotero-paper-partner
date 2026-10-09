@@ -6,7 +6,7 @@
 
 一个 Zotero 插件，能悄悄回答你在笔记里写下的 `Q:` 问题——在后台静默完成，不打断你的阅读。
 
-![Zotero](https://img.shields.io/badge/Zotero-9-E05A47?logo=zotero&logoColor=white)
+![Zotero](https://img.shields.io/badge/Zotero-10-E05A47?logo=zotero&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=000)
 ![OpenAI Compatible](https://img.shields.io/badge/API-OpenAI兼容-412991?logo=openai&logoColor=white)
 ![Open Prompt](https://img.shields.io/badge/Open%20Prompt-public-2C7A7B)
@@ -53,7 +53,7 @@ A[done]: 意思是该方法不依赖某种特定的内部表示，而是能在�
 
 ## 环境要求
 
-Zotero 7+（在 Zotero 9 上测试通过）。支持任何 OpenAI 兼容的 API 接口。
+Zotero 7–10（在 Zotero 9 和 10.0.6 上测试通过）。支持任何 OpenAI 兼容的 API 接口。
 
 ---
 

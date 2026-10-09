@@ -17,27 +17,12 @@ const CONFIG = {
 
 const PREF_PREFIX = "extensions.paper-partner.";
 const PREF_DEFAULTS = {
-    provider:    "custom",
-    orcaApiKey:  "",
-    orcaModel:   "orcarouter/free",
     apiKey:      "",
     apiEndpoint: "https://api.deepseek.com/v1/chat/completions",
     model:       "deepseek-chat",
     answerMode:  "brief",
     triggerDelay: "medium",
 };
-
-const ORCA_ENDPOINT = "https://api.orcarouter.ai/v1/chat/completions";
-
-function getApiConfig() {
-    const isOrca = getPref("provider") === "orcarouter";
-    return {
-        isOrca,
-        endpoint: isOrca ? ORCA_ENDPOINT : getPref("apiEndpoint"),
-        apiKey: getPref(isOrca ? "orcaApiKey" : "apiKey"),
-        model: getPref(isOrca ? "orcaModel" : "model"),
-    };
-}
 
 /** Read a user-configurable preference, falling back to PREF_DEFAULTS. */
 function getPref(key) {
@@ -292,9 +277,8 @@ const ApiClient = {
     },
 
     async query(questionText, contextText) {
-        const config = getApiConfig();
-        const { endpoint, model, apiKey } = config;
-        if (config.isOrca && !apiKey) throw new Error("OrcaRouter API Key is missing.");
+        const endpoint = getPref("apiEndpoint");
+        const model = getPref("model");
         const mode = getAnswerMode();
         const request = this._buildMessages(questionText, contextText, mode);
 
@@ -309,10 +293,9 @@ const ApiClient = {
 
         const response = await fetch(endpoint, {
             method: "POST",
-            ...(config.isOrca ? { redirect: "error", credentials: "omit" } : {}),
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiKey}`,
+                "Authorization": `Bearer ${getPref("apiKey")}`,
             },
             body: JSON.stringify({
                 model,
@@ -323,11 +306,6 @@ const ApiClient = {
         });
 
         if (!response.ok) {
-            // OrcaRouter errors must not copy arbitrary gateway content into synced notes.
-            if (config.isOrca) {
-                Zotero.debug("[PaperPartner] OrcaRouter HTTP error: status=" + response.status);
-                throw new Error(`OrcaRouter HTTP ${response.status}. Check your key, model, quota and balance.`);
-            }
             const body = await response.text().catch(() => "");
             Zotero.debug(
                 "[PaperPartner] API HTTP error: host=" + getEndpointHost(endpoint) +
@@ -448,7 +426,7 @@ const TaskQueue = {
 // For each unanswered Q in a note, drives the full pending→running→done flow.
 // ============================================================
 async function processNote(itemId) {
-    if (!getApiConfig().apiKey) {
+    if (!getPref("apiKey")) {
         Zotero.debug("[PaperPartner] API key not set — configure in Zotero Preferences → Paper Partner.");
         return;
     }
