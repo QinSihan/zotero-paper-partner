@@ -6,7 +6,7 @@
 
 A Zotero plugin that answers `Q:` questions you write inside notes — silently, in the background, without breaking your reading flow.
 
-![Zotero](https://img.shields.io/badge/Zotero-9-E05A47?logo=zotero&logoColor=white)
+![Zotero](https://img.shields.io/badge/Zotero-7%E2%80%9310.0-E05A47?logo=zotero&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=000)
 ![OpenAI Compatible](https://img.shields.io/badge/API-OpenAI--compatible-412991?logo=openai&logoColor=white)
 ![GitHub Downloads](https://img.shields.io/github/downloads/QinSihan/zotero-paper-partner/total?label=downloads&logo=GitHub)
@@ -51,15 +51,17 @@ Download `paper-partner.xpi` from GitHub Releases, then in Zotero: `Tools → Pl
 
 ## Configure
 
-`Zotero Preferences → Paper Partner` — set your API key, endpoint, model, answer mode, and trigger delay. Defaults to DeepSeek's OpenAI-compatible API.
+`Zotero Preferences → Paper Partner` — choose your provider, then fill in the API key, endpoint, and model. Choose your answer mode and trigger delay. Defaults to DeepSeek; advanced options are tucked away under `Advanced`.
+
+OrcaRouter is optional: select it and enter your own key from the [OrcaRouter website](https://www.orcarouter.ai/). Your questions and nearby note excerpts pass through this third-party gateway to its model providers. Avoid sensitive content and check the model's current price; free availability can change. See [privacy and setup notes](./docs/API-COMPATIBILITY.md#privacy-and-orcarouter).
 
 ## Q&A
 
 **Which APIs are supported?**  
-Paper Partner calls an OpenAI-compatible Chat Completions endpoint. DeepSeek works by default, and services such as OpenAI, Kimi/Moonshot, Alibaba Bailian DashScope, SiliconFlow, and OpenRouter can usually work by filling in their endpoint and model name. Provider presets are not built in yet.
+DeepSeek, OpenAI, Claude, Gemini, and many other text APIs are supported. Most work by filling in the endpoint and model. See the [provider setup guide](./docs/API-COMPATIBILITY.md) for examples and compatibility limits.
 
 **What should I put in API Endpoint?**  
-Use the full chat completions URL, for example `https://api.deepseek.com/v1/chat/completions`. If a provider's docs only show a `base_url`, you usually need to append `/chat/completions`.
+Use the full API URL, for example `https://api.deepseek.com/v1/chat/completions`. The format is usually detected automatically. Other providers' examples are in the [setup guide](./docs/API-COMPATIBILITY.md).
 
 **What is the difference between Brief and Detailed?**  
 Brief is designed to avoid breaking your reading flow: it only explains the term or sentence you asked about, and keeps the answer very short. Detailed gives a fuller explanation of the concept, mechanism, and causal relationship, but still does not summarize the whole paper.
@@ -68,11 +70,11 @@ Brief is designed to avoid breaking your reading flow: it only explains the term
 It controls how long the plugin waits after you press Enter into a new paragraph before it starts processing the question. Immediate is 0 seconds, Short is 1 second, Medium is 2 seconds, and Long is 3 seconds.
 
 **Why do I see `A[error]: ...`?**  
-This means the plugin received an API error, an empty response, or a model response that was cut off by the token limit. Delete the `A[error]: ...` line, then slightly rephrase the question or shorten the context and press Enter again to trigger a new request.
+Open **Trouble answering?** in the plugin settings for fixes by error type, including token limits, timeouts, and API credentials. After fixing the issue, delete the `A[error]: ...` line, edit your question, and press Enter to retry.
 
 ## Requirements
 
-Zotero 7+ (tested on Zotero 9). Any OpenAI-compatible API endpoint works.
+Zotero 7.0–10.0.x and an API key for your chosen provider. [Compatibility notes](./docs/API-COMPATIBILITY.md#validation-and-release).
 
 ---
 

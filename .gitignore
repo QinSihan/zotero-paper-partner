@@ -1,4 +1,4 @@
 .DS_Store
 assets/demo.mov
 demo-palette.png
-paper-partner.xpi
+*.xpi
