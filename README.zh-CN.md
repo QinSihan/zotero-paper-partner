@@ -6,7 +6,7 @@
 
 一个 Zotero 插件，能悄悄回答你在笔记里写下的 `Q:` 问题——在后台静默完成，不打断你的阅读。
 
-![Zotero](https://img.shields.io/badge/Zotero-7%E2%80%9310.0-E05A47?logo=zotero&logoColor=white)
+![Zotero](https://img.shields.io/badge/Zotero-9-E05A47?logo=zotero&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=000)
 ![OpenAI Compatible](https://img.shields.io/badge/API-OpenAI兼容-412991?logo=openai&logoColor=white)
 ![GitHub Downloads](https://img.shields.io/github/downloads/QinSihan/zotero-paper-partner/total?label=downloads&logo=GitHub)
@@ -50,17 +50,17 @@ A[done]: 意思是该方法不依赖某种特定的内部表示，而是能在�
 
 ## 配置
 
-`Zotero 偏好设置 → Paper Partner` — 选择服务商，填入 API Key、接口地址和模型名称，再按自己的习惯选择回答模式和触发延迟。默认使用 DeepSeek；不常用的选项收在 `Advanced` 里。
+`Zotero 偏好设置 → Paper Partner` — 填入 API key、接口地址、模型名称、回答模式和触发延迟。默认使用 DeepSeek 的 OpenAI 兼容 API。
 
-OrcaRouter 是可选项：选择后，填入你在 [官网](https://www.orcarouter.ai/)创建的 Key 即可。问题和附近笔记片段会经这个第三方网关发送给模型服务商，请避免敏感内容，并确认所选模型的价格；免费供应可能变化。[隐私及配置说明](./docs/API-COMPATIBILITY.md#privacy-and-orcarouter)。
+OrcaRouter 是可选项：在设置中选择后，填入你在 [官网](https://www.orcarouter.ai/)创建的 Key。Key 和模型单独保存，默认 `orcarouter/free`。问题和附近笔记片段会经过这个第三方网关，请避免敏感内容并确认价格；免费供应可能变化。
 
 ## Q&A
 
 **支持哪些 API？**  
-支持 DeepSeek、OpenAI、Claude、Gemini 等常见文本 API，多数填写对应地址和模型就能使用。各家的配置示例和兼容范围见 [服务商配置指南](./docs/API-COMPATIBILITY.md)。
+Paper Partner 调用 OpenAI-compatible Chat Completions 接口。默认配置是 DeepSeek；OpenAI、Kimi/Moonshot、阿里百炼 DashScope、SiliconFlow、OpenRouter 等服务通常也可以通过填写对应 endpoint 和 model 使用。Provider 预设还没有内置。
 
 **API Endpoint 应该填什么？**  
-填完整接口地址，例如 `https://api.deepseek.com/v1/chat/completions`，插件通常会自动识别格式。其他服务商的示例见 [配置指南](./docs/API-COMPATIBILITY.md)。
+这里需要填完整的 chat completions URL，例如 `https://api.deepseek.com/v1/chat/completions`。如果某个服务商文档只给了 `base_url`，里一般需要在后面补上 `/chat/completions`。
 
 **Brief 和 Detailed 有什么区别？**  
 Brief 适合不中断阅读流：只解释当前问到的术语或句子，回答会很简短。Detailed 会更充分解释概念、机制、因果关系，但仍不会总结整篇论文。
@@ -69,11 +69,11 @@ Brief 适合不中断阅读流：只解释当前问到的术语或句子，回�
 这是你按下回车新开一段后，插件等待多久才开始处理问题。Immediate 是 0 秒，Short 是 1 秒，Medium 是 2 秒，Long 是 3 秒。
 
 **为什么会出现 `A[error]: ...`？**  
-在插件设置中展开 **Trouble answering?**，可按错误类型查看 token 上限、超时和 API 凭据等问题的处理方法。解决后删掉 `A[error]: ...` 这行，修改问题，再按 Enter 重试。
+这说明插件收到了 API 错误、空回复，或者模型回答被 token limit 截断。可以删掉这行 `A[error]: ...`，然后稍稍修改问题或缩短上下文，再按 Enter 重新触发请求。
 
 ## 环境要求
 
-Zotero 7.0–10.0.x，以及所选服务商的 API Key。[兼容说明](./docs/API-COMPATIBILITY.md#validation-and-release)。
+Zotero 7+（在 Zotero 9 上测试通过）。支持任何 OpenAI 兼容的 API 接口。
 
 ---
 

@@ -7,7 +7,6 @@
 // ============================================================
 const CONFIG = {
     maxContextLength: 2000, // Max chars of context sent to the model
-    requestTimeoutMs: 60000,
     triggerDelays: {
         immediate: 0,
         short: 1000,
@@ -19,118 +18,25 @@ const CONFIG = {
 const PREF_PREFIX = "extensions.paper-partner.";
 const PREF_DEFAULTS = {
     provider:    "custom",
-    apiFormat:   "auto",
-    authMode:    "bearer",
-    chatTokenParam: "auto",
-    maxOutputTokens: "",
-    orcaMaxOutputTokens: "",
+    orcaApiKey:  "",
+    orcaModel:   "orcarouter/free",
     apiKey:      "",
     apiEndpoint: "https://api.deepseek.com/v1/chat/completions",
     model:       "deepseek-chat",
     answerMode:  "brief",
     triggerDelay: "medium",
-    orcaApiKey:  "",
-    orcaModel:   "orcarouter/free",
 };
 
 const ORCA_ENDPOINT = "https://api.orcarouter.ai/v1/chat/completions";
 
-function normalizeApiEndpoint(endpoint, format) {
-    // Accept the base URLs shown in these vendors' SDK examples, without probing
-    // another host or changing a user's explicit protocol/route.
-    if (!["auto", "chat"].includes(format)) return endpoint;
-    try {
-        const url = new URL(endpoint);
-        const path = url.pathname.replace(/\/$/, "");
-        if (["api.moonshot.cn", "api.moonshot.ai"].includes(url.hostname) && ["", "/v1"].includes(path)) {
-            url.pathname = "/v1/chat/completions";
-        } else if (["open.bigmodel.cn", "api.z.ai"].includes(url.hostname) && ["", "/api/paas/v4"].includes(path)) {
-            url.pathname = "/api/paas/v4/chat/completions";
-        } else {
-            return endpoint;
-        }
-        return url.href;
-    } catch (_) { return endpoint; }
-}
-
-function getApiCompatibility(config, format) {
-    const url = new URL(config.endpoint);
-    const model = config.model.toLowerCase();
-    const profile = { extra: {}, reasoning: false, modernTokens: false, bearer: false };
-    const path = url.pathname.replace(/\/$/, "");
-    const kimiRoute = (format === "chat" && path === "/v1/chat/completions") ||
-        (format === "responses" && path === "/v1/responses") ||
-        (format === "anthropic" && path === "/anthropic/v1/messages");
-    if (kimiRoute &&
-        ["api.moonshot.cn", "api.moonshot.ai"].includes(url.hostname)) {
-        profile.bearer = true;
-        profile.modernTokens = true;
-        if (model === "kimi-k2.6") {
-            if (format === "chat") profile.extra.thinking = { type: "disabled" };
-            else profile.reasoning = true;
-        } else if (model === "kimi-k3") {
-            profile.extra.reasoning_effort = "low";
-            profile.reasoning = true;
-        } else if (["kimi-k2.7-code", "kimi-k2.7-code-highspeed", "kimi-k2-thinking",
-            "kimi-k2-thinking-turbo", "kimi-thinking-preview"].includes(model)) {
-            // These models cannot be switched to non-thinking mode.
-            profile.reasoning = true;
-        }
-    } else if (format === "chat" && path === "/api/paas/v4/chat/completions" &&
-        ["open.bigmodel.cn", "api.z.ai"].includes(url.hostname)) {
-        profile.bearer = true;
-        if (/^glm-5\.3(?:-flashx?)?$/.test(model)) {
-            profile.extra.reasoning_effort = "low";
-            profile.reasoning = true;
-        } else if (/^glm-(?:4\.[567](?:-(?:air|airx|x|flash|flashx))?|5(?:\.[12])?(?:-turbo)?)$/.test(model)) {
-            profile.extra.thinking = { type: "disabled" };
-        }
-    }
-    return profile;
-}
-
 function getApiConfig() {
-    const provider = getPref("provider");
-    if (provider !== "custom" && provider !== "orcarouter") {
-        throw new Error("Unknown API provider. Choose a provider in Paper Partner settings.");
-    }
-    const isOrca = provider === "orcarouter";
+    const isOrca = getPref("provider") === "orcarouter";
     return {
-        provider,
-        apiFormat: isOrca ? "chat" : getPref("apiFormat"),
-        authMode: isOrca ? "bearer" : getPref("authMode"),
-        chatTokenParam: isOrca ? "auto" : getPref("chatTokenParam"),
-        maxOutputTokens: getPref(isOrca ? "orcaMaxOutputTokens" : "maxOutputTokens"),
-        endpoint: isOrca ? ORCA_ENDPOINT : normalizeApiEndpoint(getPref("apiEndpoint").trim(), getPref("apiFormat")),
-        // An empty OrcaRouter key must never fall back to another provider's key.
-        apiKey: getPref(isOrca ? "orcaApiKey" : "apiKey").trim(),
-        model: getPref(isOrca ? "orcaModel" : "model").trim(),
+        isOrca,
+        endpoint: isOrca ? ORCA_ENDPOINT : getPref("apiEndpoint"),
+        apiKey: getPref(isOrca ? "orcaApiKey" : "apiKey"),
+        model: getPref(isOrca ? "orcaModel" : "model"),
     };
-}
-
-function validateApiConfig(config) {
-    let url;
-    try { url = new URL(config.endpoint); } catch (_) {
-        throw new Error("Invalid API Endpoint. Enter the full URL for the selected API format.");
-    }
-    const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-    if (url.username || url.password ||
-        (url.protocol !== "https:" && !(url.protocol === "http:" && local))) {
-        throw new Error("API Endpoint must use HTTPS (HTTP is allowed only on localhost).");
-    }
-    if (!["auto", "chat", "responses", "anthropic", "gemini"].includes(config.apiFormat)) {
-        throw new Error("Unknown API format. Check Paper Partner settings.");
-    }
-    if (!["bearer", "api-key"].includes(config.authMode) ||
-        !["auto", "max_tokens", "max_completion_tokens"].includes(config.chatTokenParam)) {
-        throw new Error("Invalid API authentication or token parameter setting.");
-    }
-    if (config.maxOutputTokens !== "" && (!/^\d+$/.test(String(config.maxOutputTokens)) ||
-        Number(config.maxOutputTokens) < 64 || Number(config.maxOutputTokens) > 32768)) {
-        throw new Error("Max generated tokens must be a whole number from 64 to 32768, or blank.");
-    }
-    if (!config.apiKey) throw new Error("API Key is missing for the selected provider.");
-    if (!config.model) throw new Error("Model is missing for the selected provider.");
 }
 
 /** Read a user-configurable preference, falling back to PREF_DEFAULTS. */
@@ -143,29 +49,13 @@ function getPref(key) {
     }
 }
 
-// Zotero's bootstrap sandbox exposes fetch but not always AbortController.
-function createRequestController() {
-    if (typeof AbortController !== "undefined") return new AbortController();
-    const win = Zotero.getMainWindow() || Services.appShell.hiddenDOMWindow;
-    return new win.AbortController();
-}
-
-function getApiFormat(config) {
-    if (config.apiFormat !== "auto") return config.apiFormat;
-    const path = new URL(config.endpoint).pathname;
-    if (/\/responses\/?$/.test(path)) return "responses";
-    if (/\/messages\/?$/.test(path)) return "anthropic";
-    if (/:generateContent$/.test(path)) return "gemini";
-    return "chat";
-}
-
 function getAnswerMode() {
     return getPref("answerMode") === "detailed" ? "detailed" : "brief";
 }
 
 function getTriggerDelayMs() {
     const delay = getPref("triggerDelay");
-    return CONFIG.triggerDelays[delay] ?? CONFIG.triggerDelays.medium;
+    return CONFIG.triggerDelays[delay] || CONFIG.triggerDelays.medium;
 }
 
 function getEndpointHost(endpoint) {
@@ -298,7 +188,7 @@ const NoteWriter = {
         const qEl = paragraphs.find(p => p.textContent.trim() === fullQText);
 
         if (!qEl) {
-            Zotero.debug("[PaperPartner] Could not find question paragraph to update.");
+            Zotero.debug("[PaperPartner] Could not find Q paragraph to update: " + fullQText.slice(0, 60));
             return false;
         }
 
@@ -323,7 +213,7 @@ const NoteWriter = {
 
 // ============================================================
 // API CLIENT
-// Text Q&A using Chat Completions, Responses, Messages or generateContent.
+// OpenAI-compatible chat completion. DeepSeek by default.
 // ============================================================
 const ApiClient = {
     _modes: {
@@ -366,7 +256,8 @@ const ApiClient = {
             instruction: config.userInstruction,
             messages: [
                 { role: "system", content: config.systemPrompt },
-                { role: "user", content: config.userInstruction + "\n\n" + userMessage },
+                { role: "user", content: config.userInstruction },
+                { role: "user", content: userMessage },
             ],
         };
     },
@@ -377,8 +268,8 @@ const ApiClient = {
             return content
                 .map(part => {
                     if (typeof part === "string") return part;
-                    if (part && (!part.type || ["text", "output_text"].includes(part.type)) && typeof part.text === "string") return part.text;
-                    if (part && (!part.type || ["text", "output_text"].includes(part.type)) && typeof part.content === "string") return part.content;
+                    if (part && typeof part.text === "string") return part.text;
+                    if (part && typeof part.content === "string") return part.content;
                     return "";
                 })
                 .join("")
@@ -387,229 +278,113 @@ const ApiClient = {
         return "";
     },
 
-    _buildRequest(config, request) {
-        const format = getApiFormat(config);
-        const compatibility = getApiCompatibility(config, format);
-        const maxTokens = config.maxOutputTokens === ""
-            ? (compatibility.reasoning ? Math.max(8192, request.maxTokens) : request.maxTokens)
-            : Number(config.maxOutputTokens);
-        const timeoutMs = compatibility.reasoning ? 180000 : CONFIG.requestTimeoutMs;
-        const system = request.messages.filter(m => m.role === "system").map(m => m.content).join("\n\n");
-        const users = request.messages.filter(m => m.role === "user").map(m => m.content).join("\n\n");
-        const headers = { "Content-Type": "application/json" };
-        let endpoint = config.endpoint;
-        let body;
-        if (format === "anthropic") {
-            if (compatibility.bearer) headers.Authorization = `Bearer ${config.apiKey}`;
-            else headers["x-api-key"] = config.apiKey;
-            headers["anthropic-version"] = "2023-06-01";
-            body = { model: config.model, system, messages: [{ role: "user", content: users }], max_tokens: maxTokens };
-            if (compatibility.extra.reasoning_effort) body.output_config = { effort: compatibility.extra.reasoning_effort };
-        } else if (format === "gemini") {
-            headers["x-goog-api-key"] = config.apiKey;
-            const model = encodeURIComponent(config.model.replace(/^models\//, ""));
-            if (endpoint.includes("{model}")) {
-                endpoint = endpoint.replace("{model}", model);
-            } else if (!/:generateContent(?:\?|$)/.test(endpoint)) {
-                const url = new URL(endpoint);
-                url.pathname = url.pathname.replace(/\/$/, "") + "/models/" + model + ":generateContent";
-                endpoint = url.href;
-            } else {
-                const endpointModel = new URL(endpoint).pathname.match(/\/models\/([^/]+):generateContent$/);
-                if (!endpointModel || decodeURIComponent(endpointModel[1]) !== decodeURIComponent(model)) {
-                    throw new Error("Gemini endpoint and Model differ. Use a /v1beta base URL or a {model} placeholder.");
-                }
-            }
-            body = {
-                systemInstruction: { parts: [{ text: system }] },
-                contents: [{ role: "user", parts: [{ text: users }] }],
-                generationConfig: { maxOutputTokens: maxTokens },
-            };
-        } else {
-            if (config.authMode === "api-key" && !compatibility.bearer) headers["api-key"] = config.apiKey;
-            else headers.Authorization = `Bearer ${config.apiKey}`;
-            if (format === "responses") {
-                body = { model: config.model, instructions: system, input: users, max_output_tokens: maxTokens, store: false };
-                if (compatibility.extra.reasoning_effort) body.reasoning = { effort: compatibility.extra.reasoning_effort };
-            } else {
-                const host = new URL(endpoint).hostname;
-                const modernTokens = config.chatTokenParam === "max_completion_tokens" ||
-                    (config.chatTokenParam === "auto" &&
-                        (compatibility.modernTokens || host === "api.openai.com" || host.endsWith(".openai.azure.com") || host.endsWith(".services.ai.azure.com")));
-                body = { model: config.model, messages: request.messages, stream: false,
-                    [modernTokens ? "max_completion_tokens" : "max_tokens"]: maxTokens,
-                    ...compatibility.extra };
-                // Some Qwen models reject non-streaming requests with thinking enabled.
-                if ((host === "dashscope.aliyuncs.com" || host === "dashscope-intl.aliyuncs.com" ||
-                    host === "dashscope-us.aliyuncs.com") && /^qwen[3-9]/i.test(config.model)) {
-                    body.enable_thinking = false;
-                }
-            }
-        }
-        // Omit temperature: several current reasoning models reject fixed sampling parameters.
-        return { format, endpoint, headers, body, timeoutMs };
-    },
-
-    _providerError(data, config) {
-        if (!config || !data || !data.error) return "";
-        const host = new URL(config.endpoint).hostname;
-        if (["open.bigmodel.cn", "api.z.ai"].includes(host)) {
-            // Only known codes select local text; never display the upstream message.
-            const errors = {
-                "1113": "API balance is insufficient. Coding Plan quota does not fund standard API calls.",
-                "1211": "Unknown model ID. Check the model name on this GLM platform.",
-                "1212": "This model does not support the configured API method.",
-                "1220": "This API key does not have permission for the selected model or endpoint.",
-            };
-            return Object.prototype.hasOwnProperty.call(errors, data.error.code) ? errors[data.error.code] : "";
-        }
-        if (["api.moonshot.cn", "api.moonshot.ai"].includes(host)) {
-            const errors = {
-                invalid_authentication_error: "Check this region's API Platform key; Kimi Code keys are separate.",
-                resource_not_found_error: "Model not found or unavailable to this account. Check its current model ID.",
-                exceeded_current_quota_error: "API balance is insufficient. Check the Kimi API Platform billing account.",
-            };
-            return Object.prototype.hasOwnProperty.call(errors, data.error.type) ? errors[data.error.type] : "";
-        }
-        return "";
-    },
-
-    _parseResponse(format, data, config) {
-        if (!data || data.error || data.type === "error") {
-            throw new Error(this._providerError(data, config) || "The provider returned an API error.");
-        }
-        let content = "";
-        let finishReason;
-        if (format === "responses") {
-            if (data.status === "incomplete") {
-                throw new Error("Response is incomplete. Check the token budget (including reasoning) or provider restrictions.");
-            }
-            if (data.status && data.status !== "completed") throw new Error("Response did not complete.");
-            const messages = (Array.isArray(data.output) ? data.output : []).filter(item => item.type === "message");
-            const blocks = messages.flatMap(item => Array.isArray(item.content) ? item.content : []);
-            if (blocks.some(block => block.type === "refusal")) throw new Error("The provider refused this request.");
-            content = blocks.filter(block => block.type === "output_text").map(block => block.text || "").join("\n").trim();
-            finishReason = "completed";
-        } else if (format === "anthropic") {
-            finishReason = data.stop_reason;
-            if (finishReason === "max_tokens") throw new Error("Response was cut off by the token limit; increase Max generated tokens.");
-            if (finishReason === "refusal") throw new Error("The provider refused this request.");
-            if (finishReason === "tool_use" || finishReason === "pause_turn") throw new Error("The provider requested an unsupported tool or continuation.");
-            content = (Array.isArray(data.content) ? data.content : [])
-                .filter(block => block.type === "text").map(block => block.text || "").join("\n").trim();
-        } else if (format === "gemini") {
-            if (data.promptFeedback && data.promptFeedback.blockReason) throw new Error("The provider blocked this request.");
-            const candidate = data.candidates && data.candidates[0];
-            finishReason = candidate && candidate.finishReason;
-            if (finishReason === "MAX_TOKENS") throw new Error("Response was cut off by the token limit; increase Max generated tokens.");
-            if (finishReason && finishReason !== "STOP") throw new Error("The provider blocked or could not finish this response.");
-            const parts = candidate && candidate.content && candidate.content.parts;
-            content = (Array.isArray(parts) ? parts : []).filter(part => !part.thought && typeof part.text === "string")
-                .map(part => part.text).join("\n").trim();
-        } else {
-            const choice = data.choices && data.choices[0];
-            finishReason = choice && choice.finish_reason;
-            if (finishReason === "length") throw new Error("Response was cut off by the token limit; increase Max generated tokens.");
-            if (finishReason === "content_filter" || finishReason === "sensitive") throw new Error("The provider blocked this response.");
-            if (finishReason === "network_error") throw new Error("The provider could not finish inference. No automatic retry was made.");
-            if (finishReason === "model_context_window_exceeded") throw new Error("Model context limit exceeded. Shorten the input or lower Max generated tokens.");
-            if (finishReason === "tool_calls" || finishReason === "function_call") throw new Error("The provider requested an unsupported tool.");
-            content = choice && choice.message ? this._normalizeContent(choice.message.content) : "";
-        }
-        if (!content) throw new Error("Empty response from API. Reasoning models may need a larger Max generated tokens budget.");
-        return content;
+    _summarizeChoice(choice) {
+        if (!choice) return "choice=missing";
+        const message = choice.message || {};
+        const content = message.content;
+        const contentType = Array.isArray(content) ? "array" : typeof content;
+        return [
+            "finish_reason=" + (choice.finish_reason || "unknown"),
+            "message_keys=" + Object.keys(message).join("|"),
+            "content_type=" + contentType,
+            "content_length=" + (typeof content === "string" ? content.length : 0),
+        ].join(", ");
     },
 
     async query(questionText, contextText) {
         const config = getApiConfig();
-        validateApiConfig(config);
-        const { endpoint, model } = config;
+        const { endpoint, model, apiKey } = config;
+        if (config.isOrca && !apiKey) throw new Error("OrcaRouter API Key is missing.");
         const mode = getAnswerMode();
         const request = this._buildMessages(questionText, contextText, mode);
-        const wire = this._buildRequest(config, request);
 
         Zotero.debug(
             "[PaperPartner] API request: host=" + getEndpointHost(endpoint) +
             ", model=" + model +
             ", mode=" + mode +
-            ", format=" + wire.format +
+            ", max_tokens=" + request.maxTokens +
             ", instruction_length=" + request.instruction.length +
             ", message_count=" + request.messages.length
         );
 
-        const controller = createRequestController();
-        const timeout = setTimeout(() => controller.abort(), wire.timeoutMs);
-        try {
-            const response = await fetch(wire.endpoint, {
-                method: "POST",
-                signal: controller.signal,
-                redirect: "error",
-                credentials: "omit",
-                headers: wire.headers,
-                body: JSON.stringify(wire.body),
-            });
+        const response = await fetch(endpoint, {
+            method: "POST",
+            ...(config.isOrca ? { redirect: "error", credentials: "omit" } : {}),
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                model,
+                messages: request.messages,
+                max_tokens: request.maxTokens,
+                temperature: 0.3,
+            }),
+        });
 
-            if (!response.ok) {
-                Zotero.debug(
-                    "[PaperPartner] API HTTP error: host=" + getEndpointHost(endpoint) +
-                    ", model=" + model +
-                    ", status=" + response.status
-                );
-                // Never copy arbitrary upstream error text into logs or synced notes.
-                let detail = "Check the selected provider's settings and service status.";
-                if (response.status === 401 || response.status === 403) {
-                    detail = "Check this provider's API Key and model permissions.";
-                } else if (response.status === 402) {
-                    detail = "Check the provider's balance or billing settings.";
-                } else if (response.status === 429) {
-                    detail = "Rate or usage limit reached. Check the provider's quota before retrying.";
-                } else if (response.status === 400) {
-                    detail = "Check the model, API format and token limit.";
-                } else if (response.status === 404 || response.status === 405) {
-                    detail = "Check the full API Endpoint and model ID; a base URL alone may be incomplete.";
-                }
-                try { detail = this._providerError(await response.json(), config) || detail; } catch (_) {}
-                const url = new URL(endpoint);
-                if (["api.kimi.com", "api.kimi.ai"].includes(url.hostname) && /^\/coding(?:\/|$)/.test(url.pathname)) {
-                    detail = "Use a Kimi API Platform URL and matching key for this reading plugin; Kimi Code is separate.";
-                } else if (["open.bigmodel.cn", "api.z.ai"].includes(url.hostname) && /^\/api\/coding(?:\/|$)/.test(url.pathname)) {
-                    detail = "Use GLM's standard API endpoint. Coding Plan quota is limited to supported tools.";
-                }
-                throw new Error(`HTTP ${response.status}: ${detail}`);
+        if (!response.ok) {
+            // OrcaRouter errors must not copy arbitrary gateway content into synced notes.
+            if (config.isOrca) {
+                Zotero.debug("[PaperPartner] OrcaRouter HTTP error: status=" + response.status);
+                throw new Error(`OrcaRouter HTTP ${response.status}. Check your key, model, quota and balance.`);
             }
-
-            let data;
-            try {
-                data = await response.json();
-            } catch (e) {
-                Zotero.debug(
-                    "[PaperPartner] API JSON parse error: host=" + getEndpointHost(endpoint) +
-                    ", model=" + model +
-                    ", status=" + response.status
-                );
-                throw new Error("Invalid JSON from API");
-            }
-
-            const content = this._parseResponse(wire.format, data, config);
+            const body = await response.text().catch(() => "");
             Zotero.debug(
-                "[PaperPartner] API response OK: host=" + getEndpointHost(endpoint) +
-                ", format=" + wire.format +
+                "[PaperPartner] API HTTP error: host=" + getEndpointHost(endpoint) +
+                ", model=" + model +
                 ", status=" + response.status +
-                ", content_length=" + content.length
+                ", body=" + body.slice(0, 500)
             );
-
-            return content;
-        } catch (e) {
-            if (controller.signal.aborted) {
-                throw new Error(`API request timed out after ${wire.timeoutMs / 1000} seconds. No automatic retry was made.`);
-            }
-            if (e instanceof TypeError) {
-                throw new Error("API connection failed. Check the endpoint and network; redirects are not allowed.");
-            }
-            throw e;
-        } finally {
-            clearTimeout(timeout);
+            throw new Error(`HTTP ${response.status}: ${body.slice(0, 200)}`);
         }
+
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            Zotero.debug(
+                "[PaperPartner] API JSON parse error: host=" + getEndpointHost(endpoint) +
+                ", model=" + model +
+                ", status=" + response.status +
+                ", error=" + e.message
+            );
+            throw new Error("Invalid JSON from API");
+        }
+
+        const choice = data && data.choices && data.choices[0];
+        const message = choice && choice.message;
+        const content = message ? this._normalizeContent(message.content) : "";
+        const finishReason = choice && choice.finish_reason ? choice.finish_reason : "unknown";
+
+        if (!content) {
+            Zotero.debug(
+                "[PaperPartner] Empty API response: host=" + getEndpointHost(endpoint) +
+                ", model=" + model +
+                ", status=" + response.status +
+                ", " + this._summarizeChoice(choice)
+            );
+            throw new Error("Empty response from API (finish_reason=" + finishReason + ")");
+        }
+
+        if (finishReason === "length") {
+            Zotero.debug(
+                "[PaperPartner] API response was cut off: host=" + getEndpointHost(endpoint) +
+                ", model=" + model +
+                ", status=" + response.status +
+                ", " + this._summarizeChoice(choice)
+            );
+            throw new Error("Response was cut off by the token limit (finish_reason=length)");
+        }
+
+        Zotero.debug(
+            "[PaperPartner] API response OK: host=" + getEndpointHost(endpoint) +
+            ", model=" + model +
+            ", status=" + response.status +
+            ", finish_reason=" + finishReason +
+            ", content_length=" + content.length
+        );
+
+        return content;
     },
 };
 
@@ -702,7 +477,7 @@ async function processQuestion(item, q) {
     const { questionText, contextText, el } = q;
     const fp = NoteParser.fingerprint(questionText, contextText);
 
-    Zotero.debug("[PaperPartner] Processing question.");
+    Zotero.debug("[PaperPartner] → Q: " + questionText.slice(0, 80));
 
     // ① Mark as running (API call about to start)
     await NoteWriter.write(item, el, "running");
@@ -743,7 +518,7 @@ async function processQuestion(item, q) {
 
     // ④ Write the answer back
     await NoteWriter.write(item, freshQ.el, "done", answer);
-    Zotero.debug("[PaperPartner] Answer written.");
+    Zotero.debug("[PaperPartner] ✓ Answer written for: " + questionText.slice(0, 80));
 }
 
 // ============================================================
@@ -751,8 +526,6 @@ async function processQuestion(item, q) {
 // Listens for item modifications and routes notes to the task queue.
 // ============================================================
 let _observerID = null;
-let _preferencePaneID = null;
-let _active = false;
 
 function registerObserver() {
     _observerID = Zotero.Notifier.registerObserver(
@@ -790,14 +563,11 @@ function install(data, reason) {
 function startup(data, reason) {
     Zotero.debug("[PaperPartner] startup");
     rootURI = data.rootURI;
-    _active = true;
 
-    return Zotero.initializationPromise.then(async () => {
-        if (!_active) return;
+    Zotero.initializationPromise.then(() => {
         // All prefs logic is inline in the onload of prefs.xhtml — no scripts array needed.
         try {
-            _preferencePaneID = await Zotero.PreferencePanes.register({
-                id: "paper-partner-preferences",
+            Zotero.PreferencePanes.register({
                 pluginID: PLUGIN_ID,
                 src:      rootURI + "prefs.xhtml",
                 label:    "Paper Partner",
@@ -807,11 +577,6 @@ function startup(data, reason) {
             Zotero.debug("[PaperPartner] PreferencePanes.register failed: " + e.message);
         }
 
-        if (!_active) {
-            if (_preferencePaneID) Zotero.PreferencePanes.unregister(_preferencePaneID);
-            _preferencePaneID = null;
-            return;
-        }
         registerObserver();
         Zotero.debug("[PaperPartner] Ready.");
     });
@@ -819,9 +584,7 @@ function startup(data, reason) {
 
 function shutdown(data, reason) {
     Zotero.debug("[PaperPartner] shutdown");
-    _active = false;
-    try { if (_preferencePaneID) Zotero.PreferencePanes.unregister(_preferencePaneID); } catch (_) {}
-    _preferencePaneID = null;
+    try { Zotero.PreferencePanes.unregister(PLUGIN_ID); } catch (_) {}
     unregisterObserver();
     TaskQueue.clear();
 }

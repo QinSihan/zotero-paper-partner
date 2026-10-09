@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Zotero Paper Partner",
-    "version": "0.1.4",
+    "version": "0.1.2",
     "description": "Async Q&A for Zotero notes — quietly answers your reading questions in the background.",
     "author": "Sihan Qin",
     "icons": {
@@ -13,7 +13,7 @@
             "id": "paper-partner@qinsihan.github.io",
             "update_url": "https://qinsihan.github.io/zotero-paper-partner/updates.json",
             "strict_min_version": "7.0",
-            "strict_max_version": "10.0.*"
+            "strict_max_version": "9.*"
         }
     }
 }

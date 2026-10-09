@@ -3,11 +3,6 @@
   var ORCA_ENDPOINT = 'https://api.orcarouter.ai/v1/chat/completions';
   var DEFAULTS = {
     provider: 'custom',
-    apiFormat: 'auto',
-    authMode: 'bearer',
-    chatTokenParam: 'auto',
-    maxOutputTokens: '',
-    orcaMaxOutputTokens: '',
     apiKey: '',
     apiEndpoint: 'https://api.deepseek.com/v1/chat/completions',
     model: 'deepseek-chat',
@@ -19,47 +14,39 @@
   function read(key) {
     try {
       var v = Zotero.Prefs.get(PREFIX + key, true);
-      return (v !== undefined &amp;&amp; v !== null &amp;&amp; v !== '') ? v : DEFAULTS[key];
+      return (v !== undefined &amp;&amp; v !== null) ? v : DEFAULTS[key];
     } catch(e) { return DEFAULTS[key]; }
   }
-  function write(key, value) { Zotero.Prefs.set(PREFIX + key, value, true); }
-  var providerEl = document.getElementById('pp-provider');
-  providerEl.value = read('provider') === 'orcarouter' ? 'orcarouter' : 'custom';
-  function isOrca() { return providerEl.value === 'orcarouter'; }
+  var provider = document.getElementById('pp-provider');
+  provider.value = read('provider') === 'orcarouter' ? 'orcarouter' : 'custom';
+  function isOrca() { return provider.value === 'orcarouter'; }
   function prefKey(key) {
-    if (!isOrca()) return key;
-    return { apiKey: 'orcaApiKey', model: 'orcaModel', maxOutputTokens: 'orcaMaxOutputTokens' }[key] || key;
+    return isOrca() ? ({ apiKey: 'orcaApiKey', model: 'orcaModel' }[key] || key) : key;
   }
-  var connectionKeys = ['apiKey', 'apiEndpoint', 'model', 'maxOutputTokens', 'apiFormat', 'authMode', 'chatTokenParam'];
-  function loadProvider() {
-    connectionKeys.forEach(function(key) {
+  function loadConnection() {
+    ['apiKey', 'apiEndpoint', 'model'].forEach(function(key) {
       var el = document.getElementById('pp-' + key);
-      el.value = isOrca() &amp;&amp; key === 'apiEndpoint' ? ORCA_ENDPOINT :
-                 isOrca() &amp;&amp; key === 'apiFormat' ? 'chat' :
-                 isOrca() &amp;&amp; key === 'authMode' ? 'bearer' :
-                 isOrca() &amp;&amp; key === 'chatTokenParam' ? 'auto' : read(prefKey(key));
+      el.value = isOrca() &amp;&amp; key === 'apiEndpoint' ? ORCA_ENDPOINT : read(prefKey(key));
       el.readOnly = isOrca() &amp;&amp; key === 'apiEndpoint';
-      el.disabled = isOrca() &amp;&amp; ['apiFormat', 'authMode', 'chatTokenParam'].includes(key);
     });
-    document.getElementById('pp-orcaNotice').hidden = !isOrca();
     document.getElementById('pp-endpointRow').hidden = isOrca();
-    document.getElementById('pp-customOptions').hidden = isOrca();
+    document.getElementById('pp-orcaNotice').hidden = !isOrca();
   }
-  providerEl.addEventListener('change', function() {
-    loadProvider();
-    write('provider', providerEl.value);
+  provider.addEventListener('change', function() {
+    Zotero.Prefs.set(PREFIX + 'provider', provider.value, true);
+    loadConnection();
   });
-  connectionKeys.concat(['answerMode', 'triggerDelay']).forEach(function(key) {
+  ['apiKey', 'apiEndpoint', 'model', 'answerMode', 'triggerDelay'].forEach(function(key) {
     var el = document.getElementById('pp-' + key);
     if (key === 'answerMode' || key === 'triggerDelay') el.value = read(key);
     function save() {
-      if (isOrca() &amp;&amp; ['apiEndpoint', 'apiFormat', 'authMode', 'chatTokenParam'].includes(key)) return;
-      write(prefKey(key), el.value);
+      if (isOrca() &amp;&amp; key === 'apiEndpoint') return;
+      Zotero.Prefs.set(PREFIX + prefKey(key), el.value, true);
     }
     el.addEventListener('input', save);
     el.addEventListener('change', save);
   });
-  loadProvider();
+  loadConnection();
 })()">
   <label><html:h2>Paper Partner</html:h2></label>
 
@@ -71,7 +58,7 @@
     </html:select>
   </hbox>
 
-  <html:p id="pp-orcaNotice" hidden="hidden" role="note" style="margin: 8px 0 4px; line-height: 1.5">
+  <html:p id="pp-orcaNotice" hidden="hidden" style="margin: 8px 0 4px; line-height: 1.5">
     OrcaRouter is a third-party gateway. Avoid sensitive notes and check model prices; free availability can change.
     <html:a href="https://www.orcarouter.ai/privacy.html" onclick="Zotero.launchURL(this.href); return false;">Privacy</html:a>
   </html:p>
@@ -108,50 +95,4 @@
       <html:option value="long">Long (3s)</html:option>
     </html:select>
   </hbox>
-
-  <html:details style="margin-top: 16px">
-    <html:summary style="cursor: pointer">Advanced</html:summary>
-    <html:div id="pp-customOptions" style="margin-top: 10px">
-      <html:div style="display: grid; grid-template-columns: 145px minmax(0, 1fr); align-items: center; gap: 8px">
-        <html:label for="pp-apiFormat">API Format</html:label>
-        <html:select id="pp-apiFormat">
-          <html:option value="auto">Automatic</html:option>
-          <html:option value="chat">OpenAI Chat Completions</html:option>
-          <html:option value="responses">OpenAI Responses</html:option>
-          <html:option value="anthropic">Anthropic Messages</html:option>
-          <html:option value="gemini">Gemini</html:option>
-        </html:select>
-        <html:label for="pp-authMode">Authentication</html:label>
-        <html:select id="pp-authMode">
-          <html:option value="bearer">Bearer (default)</html:option>
-          <html:option value="api-key">API Key (Azure)</html:option>
-        </html:select>
-        <html:label for="pp-chatTokenParam">Token parameter</html:label>
-        <html:select id="pp-chatTokenParam">
-          <html:option value="auto">Automatic</html:option>
-          <html:option value="max_tokens">max_tokens</html:option>
-          <html:option value="max_completion_tokens">max_completion_tokens</html:option>
-        </html:select>
-      </html:div>
-    </html:div>
-    <html:div style="display: grid; grid-template-columns: 145px minmax(0, 1fr); align-items: center; gap: 8px; margin-top: 8px">
-      <html:label for="pp-maxOutputTokens">Max generated tokens</html:label>
-      <html:input type="number" min="64" max="32768" step="1" id="pp-maxOutputTokens" placeholder="Automatic"/>
-    </html:div>
-    <html:p style="margin: 8px 0 0; line-height: 1.5">Raise the limit if reasoning models return empty or cut-off answers. Higher limits may cost more.</html:p>
-  </html:details>
-
-  <html:details style="margin-top: 10px">
-    <html:summary style="cursor: pointer">Trouble answering?</html:summary>
-    <html:div style="line-height: 1.5">
-      <html:p><html:strong>Empty or cut-off answer:</html:strong> In Advanced, clear Max generated tokens to use Automatic, or raise the limit. Reasoning models may need more tokens; higher limits may cost more.</html:p>
-      <html:p><html:strong>Timeout:</html:strong> Try Brief mode, a shorter question, or a faster model.</html:p>
-      <html:p><html:strong>400 / 404:</html:strong> Check API Endpoint and Model. For a rejected parameter, set API Format or Token parameter in Advanced as required by your provider.</html:p>
-      <html:p><html:strong>401 / 403:</html:strong> Check your API Key and model access. A coding subscription key may not work with the standard API.</html:p>
-      <html:p><html:strong>429:</html:strong> Wait before retrying and check your provider's quota or balance.</html:p>
-      <html:p>After fixing the issue, delete the A[error] line, edit your Q question, and press Enter to retry.</html:p>
-    </html:div>
-  </html:details>
-
-  <html:p style="margin: 14px 0 0; line-height: 1.5; color: var(--fill-secondary)">Your questions and nearby note excerpts are sent to your chosen provider.</html:p>
 </groupbox>
