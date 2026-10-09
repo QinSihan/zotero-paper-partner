@@ -9,7 +9,6 @@
 ![Zotero](https://img.shields.io/badge/Zotero-9-E05A47?logo=zotero&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=000)
 ![OpenAI Compatible](https://img.shields.io/badge/API-OpenAI兼容-412991?logo=openai&logoColor=white)
-![GitHub Downloads](https://img.shields.io/github/downloads/QinSihan/zotero-paper-partner/total?label=downloads&logo=GitHub)
 ![Open Prompt](https://img.shields.io/badge/Open%20Prompt-public-2C7A7B)
 ![Vibe Coding](https://img.shields.io/badge/Vibe%20Coding-Agent可复现-111111)
 
@@ -50,24 +49,7 @@ A[done]: 意思是该方法不依赖某种特定的内部表示，而是能在�
 
 ## 配置
 
-`Zotero 偏好设置 → Paper Partner` — 填入 API key、接口地址、模型名称、回答模式和触发延迟。默认使用 DeepSeek 的 OpenAI 兼容 API。
-
-## Q&A
-
-**支持哪些 API？**  
-Paper Partner 调用 OpenAI-compatible Chat Completions 接口。默认配置是 DeepSeek；OpenAI、Kimi/Moonshot、阿里百炼 DashScope、SiliconFlow、OpenRouter 等服务通常也可以通过填写对应 endpoint 和 model 使用。Provider 预设还没有内置。
-
-**API Endpoint 应该填什么？**  
-这里需要填完整的 chat completions URL，例如 `https://api.deepseek.com/v1/chat/completions`。如果某个服务商文档只给了 `base_url`，里一般需要在后面补上 `/chat/completions`。
-
-**Brief 和 Detailed 有什么区别？**  
-Brief 适合不中断阅读流：只解释当前问到的术语或句子，回答会很简短。Detailed 会更充分解释概念、机制、因果关系，但仍不会总结整篇论文。
-
-**Trigger Delay 是什么？**  
-这是你按下回车新开一段后，插件等待多久才开始处理问题。Immediate 是 0 秒，Short 是 1 秒，Medium 是 2 秒，Long 是 3 秒。
-
-**为什么会出现 `A[error]: ...`？**  
-这说明插件收到了 API 错误、空回复，或者模型回答被 token limit 截断。可以删掉这行 `A[error]: ...`，然后稍稍修改问题或缩短上下文，再按 Enter 重新触发请求。
+`Zotero 偏好设置 → Paper Partner` — 填入 API key、接口地址和模型名称。默认使用 DeepSeek 的 OpenAI 兼容 API。
 
 ## 环境要求
 
