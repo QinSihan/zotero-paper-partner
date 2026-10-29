@@ -9,6 +9,8 @@
 ![Zotero](https://img.shields.io/badge/Zotero-10-E05A47?logo=zotero&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=000)
 ![OpenAI Compatible](https://img.shields.io/badge/API-OpenAI兼容-412991?logo=openai&logoColor=white)
+![Open Prompt](https://img.shields.io/badge/Open%20Prompt-public-2C7A7B)
+![Vibe Coding](https://img.shields.io/badge/Vibe%20Coding-Agent可复现-111111)
 
 [下载插件](https://github.com/QinSihan/zotero-paper-partner/releases/latest) · [反馈问题](https://github.com/QinSihan/zotero-paper-partner/issues) · [English](./README.md)
 
@@ -36,6 +38,8 @@ A[done]: 意思是该方法不依赖某种特定的内部表示，而是能在�
 **即问即得** 不需要读完重新整理 ai 的回答做成 Q&A 笔记，引用、问题、回答都在一个普通的 Zotero note 里。可以完全融入你原来的笔记逻辑。
 
 **润物无声** 插件会静默处理你的问题，不会干扰你的注意力。
+
+**轻松复现** 实现非常轻量，仓库里不止有所有源码，还有 [`target.md`](./target.md)。里面是整个实现的设计思路和一些需要用到 Zotero 9 的特性，任何人都可以把这个 Markdown 交给市面上的任何 coding Agent 来实现 Agent 复现。
 
 ---
 

@@ -9,6 +9,8 @@ A Zotero plugin that answers `Q:` questions you write inside notes — silently,
 ![Zotero](https://img.shields.io/badge/Zotero-10-E05A47?logo=zotero&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=000)
 ![OpenAI Compatible](https://img.shields.io/badge/API-OpenAI--compatible-412991?logo=openai&logoColor=white)
+![Open Prompt](https://img.shields.io/badge/Open%20Prompt-public-2C7A7B)
+![Vibe Coding](https://img.shields.io/badge/Vibe%20Coding-Agent%20Reproducible-111111)
 
 [Download](https://github.com/QinSihan/zotero-paper-partner/releases/latest) · [Report an issue](https://github.com/QinSihan/zotero-paper-partner/issues) · [中文说明](./README.zh-CN.md)
 
@@ -37,6 +39,8 @@ That's really the whole idea: keep the question, the context, and the answer in 
 **Stay in the note.** Most AI reading tools ask you to step out of your notes and into some other interface. This one doesn't. The question lives in your note, the answer comes back to that same note, and what you end up with is still just a normal reading note you can keep.
 
 **Don't break the flow.** You write `Q:`, press Enter, and move on. The plugin waits a moment, works in the background, and fills in the answer when it's ready. If you change the note while it's working, it marks the result as stale instead of pretending the old answer is still valid.
+
+**Any coding Agent can reproduce.** If you want to rebuild or extend it, this repo includes [`target.md`](./target.md), which is basically the original spec that shaped the whole plugin. You can hand that file to a coding agent and get a solid reproduction path without having to reverse-engineer the idea from scratch.
 
 ---
 
