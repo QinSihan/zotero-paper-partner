@@ -9,10 +9,8 @@ A Zotero plugin that answers `Q:` questions you write inside notes — silently,
 ![Zotero](https://img.shields.io/badge/Zotero-10-E05A47?logo=zotero&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=000)
 ![OpenAI Compatible](https://img.shields.io/badge/API-OpenAI--compatible-412991?logo=openai&logoColor=white)
-![Open Prompt](https://img.shields.io/badge/Open%20Prompt-public-2C7A7B)
-![Vibe Coding](https://img.shields.io/badge/Vibe%20Coding-Agent%20Reproducible-111111)
 
-[中文说明](./README.zh-CN.md)
+[Download](https://github.com/QinSihan/zotero-paper-partner/releases/latest) · [Report an issue](https://github.com/QinSihan/zotero-paper-partner/issues) · [中文说明](./README.zh-CN.md)
 
 [![Demo](./assets/demo.gif)](./assets/demo.mp4)
 
@@ -40,13 +38,11 @@ That's really the whole idea: keep the question, the context, and the answer in 
 
 **Don't break the flow.** You write `Q:`, press Enter, and move on. The plugin waits a moment, works in the background, and fills in the answer when it's ready. If you change the note while it's working, it marks the result as stale instead of pretending the old answer is still valid.
 
-**Any coding Agent can reproduce.** If you want to rebuild or extend it, this repo includes [`target.md`](./target.md), which is basically the original spec that shaped the whole plugin. You can hand that file to a coding agent and get a solid reproduction path without having to reverse-engineer the idea from scratch.
-
 ---
 
 ## Install
 
-Download `paper-partner.xpi` from GitHub Releases, then in Zotero: `Tools → Plugins → Install Add-on From File`.
+Download `paper-partner.xpi` from the [latest release](https://github.com/QinSihan/zotero-paper-partner/releases/latest), then in Zotero: `Tools → Plugins → Install Add-on From File`.
 
 ## Configure
 
@@ -58,6 +54,22 @@ Zotero 7–10 (tested on Zotero 9 and 10.0.6). Any OpenAI-compatible API endpoin
 
 ---
 
-## Note
+## Development
 
-This project was built with a very heavy dose of vibe coding, honestly something like 99% of it. The core prompt/spec is public in [`target.md`](./target.md), so the project is not just open source, but also fairly open-prompt.
+The plugin is a small JavaScript add-on: `bootstrap.js` contains the note processing and API logic, `prefs.xhtml` contains the settings UI, and `manifest.json` defines the add-on metadata. There is no dependency-install or build step.
+
+To package a modified version, run this command from the repository root (requires `zip`):
+
+```sh
+zip -j paper-partner.xpi manifest.json bootstrap.js prefs.xhtml icon.png icon@2x.png
+```
+
+Install the resulting `paper-partner.xpi` in Zotero using the steps above. Before submitting a change, check it in a scratch note:
+
+- Add a short context paragraph and a `Q:` question, press Enter, and confirm an answer appears under the question.
+- Edit the context while a request is running and confirm an outdated answer is not silently written back as current.
+- Check that an API failure is shown as `A[error]` without losing the question or surrounding note text.
+
+These are manual checks; the repository does not currently include an automated test suite. When [reporting an issue](https://github.com/QinSihan/zotero-paper-partner/issues), include your Zotero version, plugin version, and steps to reproduce.
+
+This project was built with extensive AI assistance—honestly, roughly 99% vibe coding. The original prompt/spec is public in [`target.md`](./target.md) for anyone who wants to understand, rebuild, or extend the idea.
